@@ -5,7 +5,10 @@
 clc; clear;
 
 %% ---------------- USER PARAMS ----------------------------------------
-load("radar_scan_dataXY1.mat");   % contains variable `recs`
+dataFile = 'radar_scan_dataXY1.mat';
+load(dataFile)   % contains variable `recs`
+[~, baseName] = fileparts(dataFile);
+
 vtrigU_ants_location;
 [Xgrid,Ygrid,Zgrid]=meshgrid(xgrid,ygrid,zgrid);
 
@@ -70,6 +73,8 @@ end %end for
             %     set(gca,'NextPlot','replacechildren');
             %     title('yz view');xlabel('y');ylabel('z');daspect([1,1,1]);%caxis([-20,20]); 
             % end
+            outname = sprintf('%s_yz.png',baseName);
+            exportgraphics(gcf, outName, 'Resolution', 300);
         end
         %% Plot X-Z Slice
         if and(min([length(xgrid),length(zgrid)])>2,length(ygrid)<=2)
