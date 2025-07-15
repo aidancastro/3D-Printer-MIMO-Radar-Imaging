@@ -1,0 +1,68 @@
+% y axis - horizontal printer move
+% x axis - vetical printer move
+% z axis - towards target
+%%
+clc; clear;
+
+%% ---------------- USER PARAMS ----------------------------------------
+load("radar_scan_data8.mat");   % contains variable `recs`
+vtrigU_ants_location;
+[Xgrid,Ygrid,Zgrid]=meshgrid(xgrid,ygrid,zgrid);
+
+src = reshape(cat(4,Xgrid,Ygrid,Zgrid),[],3);
+src2 = permute(src,[3,2,4,1]);
+
+c = physconst('lightspeed'); %(m/s)
+N_freq = length(freq);
+Nfft = 2^(ceil(log2(size(freq,2)))+1);
+y_cart_sum = zeros(size(xgrid));
+
+%% Back Projection Loop 
+for i=1:10
+X = recs(:,:,i);
+
+Rvec = src2-(VtrigU_ants_location + [0 0.02*(i-1) 0]);
+Rmag = rssq(Rvec,2);
+Rtheta = atan2(rssq(Rvec(:,1:2,:,:),2),Rvec(:,3,:,:));
+Rphi = atan2(Rvec(:,2,:,:),Rvec(:,1,:,:));
+Sphase = 2*pi*Rmag.*freq/c; %Electrical Length in Radians
+RCS = 1; %m^2
+lambda = c./freq; csf = sqrt(RCS).*lambda./((4*pi).^(3/2));
+Smag = 10^(5.8/20)*RadiationPattern(Rtheta,Rphi)./Rmag;
+
+H2 = zeros(length(TxRxPairs),length(freq),1,length(src2));
+for ii = 1:length(TxRxPairs)
+    tx = TxRxPairs(ii,1); rx = TxRxPairs(ii,2);
+    H2(ii,:,:,:) = 1./(csf.*Smag(tx,:,:,:).*Smag(rx,:,:,:).*...
+              exp(-1j.*(Sphase(tx,:,:,:)+Sphase(rx,:,:,:))));
+end
+H2 = reshape(permute(H2,[4,1,2,3]),length(src2),[]); %xyz x txrx x freq
+
+ % Identify resonant frequencies 
+thresh = 3;
+lnconv = min(max(floor(N_freq/8)*2+1,floor(50/(freq(2)-freq(1)))*2+1),...
+         floor(3*N_freq/8)*2+1); %conv length between 1/4 and 3/4 N_freq
+c2 = -ones(lnconv,1)/(lnconv-1);
+c2((lnconv+1)/2) = 1;
+padsig = 20*log10(rssq(X,1));
+padsig = [padsig((lnconv-1)/2:-1:1),padsig,padsig(end:-1:end-(lnconv-1)/2+1)]; 
+padsig = conv(padsig,c2,'valid');        
+f_res = padsig>thresh;
+
+%Remove resonant frequencies
+X = X .* (1-f_res);  
+%convert to complex time domain signal
+x = ifft(X,Nfft,2);
+       
+y_cart = reshape(H2*reshape(X,[],1),size(Xgrid));
+
+y_cart_sum = y_cart_sum + y_cart;
+
+end %end for 
+
+ %% Plot Y-Z Slice
+        if and(min([length(ygrid),length(zgrid)])>2,length(xgrid)<=2)
+            y_yz = 20*log10(rssq(y_cart_sum(:,find(xgrid>=xgrid(1),1):find(xgrid>=xgrid(end),1),:),2));
+            figure();ax=pcolor(squeeze(Ygrid(:,1,:)),squeeze(Zgrid(:,1,:)),squeeze(y_yz));
+            set(ax,'EdgeColor', 'none');
+        end
