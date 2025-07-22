@@ -2,10 +2,10 @@
 % x axis - vetical printer move
 % z axis - towards target
 %%
-clc; clear;
+%clc; clear;
 
 %% ---------------- USER PARAMS ----------------------------------------
-load("radar_scan_dataXY1.mat");   % contains variable `recs`
+%load("radar_scan_dataXY1.mat");   % contains variable `recs`
 vtrigU_ants_location;
 [Xgrid,Ygrid,Zgrid]=meshgrid(xgrid,ygrid,zgrid);
 
@@ -72,6 +72,31 @@ end %end for
             % end
         end
         %% Plot X-Z Slice
+%% Plot YZ-Slice
+ if  min([numel(ygrid) numel(zgrid)]) > 2 && numel(xgrid) <= 2
+
+    % 1. Collapse along X and convert to dB
+    y_yz = 20*log10( rssq(y_cart_sum, 2) );   % size = Ny × Nz
+    y_yz = y_yz - max(y_yz(:)); % peak-normalize
+    % 2. Plot
+    figure;
+    p = pcolor( squeeze(Ygrid(:,1,:)), ...
+                squeeze(Zgrid(:,1,:)), ...
+                squeeze(y_yz) );
+    set(p,'EdgeColor','none');
+    shading interp;             % smoother look
+    colormap(turbo);            % colour‑blind‑safe
+
+    % 3. Dynamic colour limits: top 40 dB
+    peak = max(y_yz(:));
+    caxis([-40 0]);
+
+    cb = colorbar;  ylabel(cb,'|χ| [dB]');
+
+    axis equal tight;           % square pixels, no margins
+    xlabel('Y [m]');  ylabel('Z [m]');
+    title('Y–Z Power Slice');
+end
         if and(min([length(xgrid),length(zgrid)])>2,length(ygrid)<=2)
             y_xz = 20*log10(rssq(y_cart_sum(find(ygrid>=ygrid(1),1):find(ygrid>=ygrid(end),1),:,:),1));
             figure();ax=pcolor(squeeze(Xgrid(1,:,:)),squeeze(Zgrid(1,:,:)),squeeze(y_xz));
