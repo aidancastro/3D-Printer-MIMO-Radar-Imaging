@@ -142,5 +142,9 @@ end %end for
     axis equal tight;           % square pixels, no margins
     xlabel('X [m]');  ylabel('Y [m]');
     title('X-Y Power Slice');
+<<<<<<< Updated upstream:yz_backprojection.m
+ end
+>>>>>>> Stashed changes:yz_backprojection1D_Grid.asv
+=======
  end
 >>>>>>> Stashed changes:yz_backprojection1D_Grid.asv

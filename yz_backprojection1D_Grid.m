@@ -66,6 +66,7 @@ disp(i)
 end %end for 
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
  %% Plot Y-Z Slice
         if and(min([length(ygrid),length(zgrid)])>2,length(xgrid)<=2)
             y_yz = 20*log10(rssq(y_cart_sum(:,find(xgrid>=xgrid(1),1):find(xgrid>=xgrid(end),1),:),2));
@@ -89,6 +90,8 @@ end %end for
             % end
         end
 =======
+=======
+>>>>>>> Stashed changes
 %% Plot YZ-Slice
  if  min([numel(ygrid) numel(zgrid)]) > 2 && numel(xgrid) <= 2
 
@@ -116,6 +119,9 @@ end %end for
  end
  %% Plot XZ-Slice
  if  min([numel(xgrid) numel(zgrid)]) > 2 && numel(ygrid) <= 2
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
     % 1. Collapse along X and convert to dB
