@@ -66,7 +66,7 @@ end %end for
             y_yz = 20*log10(rssq(y_cart_sum(:,find(xgrid>=xgrid(1),1):find(xgrid>=xgrid(end),1),:),2));
             figure();ax=pcolor(squeeze(Ygrid(:,1,:)),squeeze(Zgrid(:,1,:)),squeeze(y_yz));
             set(ax,'EdgeColor', 'none');
-        end        end
+        end
 =======
 %% Plot YZ-Slice
  if  min([numel(ygrid) numel(zgrid)]) > 2 && numel(xgrid) <= 2
