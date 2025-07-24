@@ -61,17 +61,6 @@ y_cart_sum = y_cart_sum + y_cart;
 disp(i)
 end %end for 
 
- %% Plot Y-Z Slice
-        if and(min([length(ygrid),length(zgrid)])>2,length(xgrid)<=2)
-            y_yz = 20*log10(rssq(y_cart_sum(:,find(xgrid>=xgrid(1),1):find(xgrid>=xgrid(end),1),:),2));
-            figure();ax=pcolor(squeeze(Ygrid(:,1,:)),squeeze(Zgrid(:,1,:)),squeeze(y_yz));
-            set(ax,'EdgeColor', 'none');
-            % if first_iter 
-            %     set(gca,'NextPlot','replacechildren');
-            %     title('yz view');xlabel('y');ylabel('z');daspect([1,1,1]);%caxis([-20,20]); 
-            % end
-        end
-        %% Plot X-Z Slice
 %% Plot YZ-Slice
  if  min([numel(ygrid) numel(zgrid)]) > 2 && numel(xgrid) <= 2
 
@@ -97,6 +86,7 @@ end %end for
     xlabel('Y [m]');  ylabel('Z [m]');
     title('Y–Z Power Slice');
 end
+%% XZ-Power Slice
         if and(min([length(xgrid),length(zgrid)])>2,length(ygrid)<=2)
             y_xz = 20*log10(rssq(y_cart_sum(find(ygrid>=ygrid(1),1):find(ygrid>=ygrid(end),1),:,:),1));
             figure();ax=pcolor(squeeze(Xgrid(1,:,:)),squeeze(Zgrid(1,:,:)),squeeze(y_xz));
