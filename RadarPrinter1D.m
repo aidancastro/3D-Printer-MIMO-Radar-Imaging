@@ -1,3 +1,4 @@
+%% Version 3: Switched to inverting optimal response for each pixel
 %add DOTNET assembly
 clc;
 close all;
