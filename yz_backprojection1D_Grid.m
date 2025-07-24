@@ -19,6 +19,7 @@ c = physconst('lightspeed'); %(m/s)
 N_freq = length(freq);
 Nfft = 2^(ceil(log2(size(freq,2)))+1);
 y_cart_sum = zeros(size(xgrid));
+single_scan = X(:,:,1); %first image for reference
 
 %% Back Projection Loop 
 for i=1:10
@@ -64,6 +65,7 @@ y_cart_sum = y_cart_sum + y_cart;
 disp(i)
 end %end for 
 
+<<<<<<< Updated upstream
  %% Plot Y-Z Slice
         if and(min([length(ygrid),length(zgrid)])>2,length(xgrid)<=2)
             y_yz = 20*log10(rssq(y_cart_sum(:,find(xgrid>=xgrid(1),1):find(xgrid>=xgrid(end),1),:),2));
@@ -86,14 +88,80 @@ end %end for
             %     title('xz view');xlabel('x');ylabel('z');daspect([1,1,1]);%caxis([-20,20]);
             % end
         end
+=======
+%% Plot YZ-Slice
+ if  min([numel(ygrid) numel(zgrid)]) > 2 && numel(xgrid) <= 2
 
-        %% Plot X-Y Slice
-        if and(min([length(xgrid),length(ygrid)])>2,length(zgrid)<=2)
-            y_xy = 20*log10(rssq(y_cart_sum(:,:,find(zgrid>=zgrid(1),1):find(zgrid>=zgrid(end),1)),3));
-            figure();ax=pcolor(squeeze(Xgrid(:,:,1)),squeeze(Ygrid(:,:,1)),squeeze(y_xy));
-            set(ax,'EdgeColor', 'none');
-            % if first_iter
-            %     set(gca,'NextPlot','replacechildren');
-            %     title('xy view');xlabel('x');ylabel('y');daspect([1,1,1]);%caxis([-20,20]);
-            % end
-        end
+    % 1. Collapse along X and convert to dB
+    y_yz = 20*log10( rssq(y_cart_sum, 2) );   % size = Ny × Nz
+    y_yz = y_yz - max(y_yz(:)); % peak-normalize
+    % 2. Plot
+    figure;
+    p = pcolor( squeeze(Ygrid(:,1,:)), ...
+                squeeze(Zgrid(:,1,:)), ...
+                squeeze(y_yz) );
+    set(p,'EdgeColor','none');
+    shading interp;             % smoother look
+    colormap(turbo);            % colour‑blind‑safe
+
+    % 3. Dynamic colour limits: top 40 dB
+    peak = max(y_yz(:));
+    caxis([-40 0]);
+
+    cb = colorbar;  ylabel(cb,'|χ| [dB]');
+
+    axis equal tight;           % square pixels, no margins
+    xlabel('Y [m]');  ylabel('Z [m]');
+    title('Y–Z Power Slice');
+ end
+ %% Plot XZ-Slice
+ if  min([numel(xgrid) numel(zgrid)]) > 2 && numel(ygrid) <= 2
+>>>>>>> Stashed changes
+
+    % 1. Collapse along X and convert to dB
+    y_xz = 20*log10( rssq(y_cart_sum, 2) );   % size = Ny × Nz
+    y_xz = y_xz - max(y_xz(:)); % peak-normalize
+    % 2. Plot
+    figure;
+    p = pcolor( squeeze(Xgrid(:,1,:)), ...
+                squeeze(Zgrid(:,1,:)), ...
+                squeeze(y_xz) );
+    set(p,'EdgeColor','none');
+    shading interp;             % smoother look
+    colormap(turbo);            % colour‑blind‑safe
+
+    % 3. Dynamic colour limits: top 40 dB
+    peak = max(y_xz(:));
+    caxis([-40 0]);
+
+    cb = colorbar;  ylabel(cb,'|χ| [dB]');
+
+    axis equal tight;           % square pixels, no margins
+    xlabel('X [m]');  ylabel('Z [m]');
+    title('X–Z Power Slice');
+ end
+ %% Plot XY-Slice
+ if  min([numel(xgrid) numel(ygrid)]) > 2 && numel(zgrid) <= 2
+
+    % 1. Collapse along X and convert to dB
+    y_xy = 20*log10( rssq(y_cart_sum, 2) );   % size = Ny × Nz
+    y_xy = y_xy - max(y_xy(:)); % peak-normalize
+    % 2. Plot
+    figure;
+    p = pcolor( squeeze(Xgrid(:,1,:)), ...
+                squeeze(Ygrid(:,1,:)), ...
+                squeeze(y_xy) );
+    set(p,'EdgeColor','none');
+    shading interp;             % smoother look
+    colormap(turbo);            % colour‑blind‑safe
+
+    % 3. Dynamic colour limits: top 40 dB
+    peak = max(y_xy(:));
+    caxis([-40 0]);
+
+    cb = colorbar;  ylabel(cb,'|χ| [dB]');
+
+    axis equal tight;           % square pixels, no margins
+    xlabel('X [m]');  ylabel('Y [m]');
+    title('X-Y Power Slice');
+ end

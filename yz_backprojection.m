@@ -60,9 +60,87 @@ y_cart_sum = y_cart_sum + y_cart;
 
 end %end for 
 
+<<<<<<< Updated upstream:yz_backprojection.m
  %% Plot Y-Z Slice
         if and(min([length(ygrid),length(zgrid)])>2,length(xgrid)<=2)
             y_yz = 20*log10(rssq(y_cart_sum(:,find(xgrid>=xgrid(1),1):find(xgrid>=xgrid(end),1),:),2));
             figure();ax=pcolor(squeeze(Ygrid(:,1,:)),squeeze(Zgrid(:,1,:)),squeeze(y_yz));
             set(ax,'EdgeColor', 'none');
-        end
+        end        end
+=======
+%% Plot YZ-Slice
+ if  min([numel(ygrid) numel(zgrid)]) > 2 && numel(xgrid) <= 2
+
+    % 1. Collapse along X and convert to dB
+    y_yz = 20*log10( rssq(y_cart_sum, 2) );   % size = Ny × Nz
+    y_yz = y_yz - max(y_yz(:)); % peak-normalize
+    % 2. Plot
+    figure;
+    p = pcolor( squeeze(Ygrid(:,1,:)), ...
+                squeeze(Zgrid(:,1,:)), ...
+                squeeze(y_yz) );
+    set(p,'EdgeColor','none');
+    shading interp;             % smoother look
+    colormap(turbo);            % colour‑blind‑safe
+
+    % 3. Dynamic colour limits: top 40 dB
+    peak = max(y_yz(:));
+    caxis([-40 0]);
+
+    cb = colorbar;  ylabel(cb,'|χ| [dB]');
+
+    axis equal tight;           % square pixels, no margins
+    xlabel('Y [m]');  ylabel('Z [m]');
+    title('Y–Z Power Slice');
+ end
+ %% PLot X-Z
+ if  min([numel(xgrid) numel(zgrid)]) > 2 && numel(ygrid) <= 2
+
+    % 1. Collapse along X and convert to dB
+    y_xz = 20*log10( rssq(y_cart_sum, 2) );   % size = Ny × Nz
+    y_xz = y_xz - max(y_xz(:)); % peak-normalize
+    % 2. Plot
+    figure;
+    p = pcolor( squeeze(Xgrid(:,1,:)), ...
+                squeeze(Zgrid(:,1,:)), ...
+                squeeze(y_xz) );
+    set(p,'EdgeColor','none');
+    shading interp;             % smoother look
+    colormap(turbo);            % colour‑blind‑safe
+
+    % 3. Dynamic colour limits: top 40 dB
+    peak = max(y_xz(:));
+    caxis([-40 0]);
+
+    cb = colorbar;  ylabel(cb,'|χ| [dB]');
+
+    axis equal tight;           % square pixels, no margins
+    xlabel('X [m]');  ylabel('Z [m]');
+    title('X–Z Power Slice');
+ end
+ %% Plot X-Y Slice
+ if  min([numel(xgrid) numel(ygrid)]) > 2 && numel(zgrid) <= 2
+
+    % 1. Collapse along X and convert to dB
+    y_xy = 20*log10( rssq(y_cart_sum, 2) );   % size = Ny × Nz
+    y_xy = y_xy - max(y_xy(:)); % peak-normalize
+    % 2. Plot
+    figure;
+    p = pcolor( squeeze(Xgrid(:,1,:)), ...
+                squeeze(Ygrid(:,1,:)), ...
+                squeeze(y_xy) );
+    set(p,'EdgeColor','none');
+    shading interp;             % smoother look
+    colormap(turbo);            % colour‑blind‑safe
+
+    % 3. Dynamic colour limits: top 40 dB
+    peak = max(y_xy(:));
+    caxis([-40 0]);
+
+    cb = colorbar;  ylabel(cb,'|χ| [dB]');
+
+    axis equal tight;           % square pixels, no margins
+    xlabel('X [m]');  ylabel('Y [m]');
+    title('X-Y Power Slice');
+ end
+>>>>>>> Stashed changes:yz_backprojection1D_Grid.asv
