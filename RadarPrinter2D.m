@@ -3,9 +3,12 @@ clc;
 close all;
 clear;
 NET.addAssembly([getenv('programfiles'),'\Vayyar\vtrigU\bin\vtrigU.CSharp.dll']);
+load('Calibration_YZ_2D_20250728_160627.mat');
+
+calibration_X = recs;
 
 %export file info
-extension = '.mat'; %export_path = "C:\Users\13523\Desktop\Vakalis research\Figure Holding Space";
+extension = '.mat'; export_path = "C:\Users\13523\Desktop\Vakalis research\Figure Holding Space";
 dateTag   = datestr(datetime('now'),'yyyymmdd_HHMMss'); 
 
 %% Dynamic Square Snake scanning grid 
@@ -65,10 +68,10 @@ time_vec = (0:Ts:Ts*(Nfft-1));
 dist_vec = time_vec*1.5e8; %distance in meters
 
 %% Voxels
-Nx = 40; Ny = 40; Nz = 1;
-xgrid = linspace(0,0.5,Nx);
-zgrid = 0.423;
-ygrid = linspace(-0.4, 0.4, Ny);
+Nx = 1; Ny = 50; Nz = 50;
+xgrid = [0.112];
+zgrid = linspace(0.1,0.4,Nz);
+ygrid = linspace(-0.1, 0.4, Ny);
 [Xgrid,Ygrid,Zgrid]=meshgrid(xgrid,ygrid,zgrid);
 
 src = reshape(cat(4,Xgrid,Ygrid,Zgrid),[],3);
@@ -121,7 +124,7 @@ for kk = 1:length(printer_positions)
         rec = double(vtrigU.vtrigU.GetRecordingResult(vtrigU.SignalCalibration.DEFAULT_CALIBRATION));
 
         X = rec;
-        
+       
         %Convert and reshape result to matlab complex matrix
         smat_size = [size(TxRxPairs,1),size(freq,2),2];
         my_perms = [1,3,2];
@@ -150,10 +153,11 @@ for kk = 1:length(printer_positions)
             padsig = [padsig((lnconv-1)/2:-1:1),padsig,padsig(end:-1:end-(lnconv-1)/2+1)]; 
             padsig = conv(padsig,c2,'valid');        
             f_res = padsig>thresh;
-        end  %end scan 
+            end  
         
         %Remove resonant frequencies
         X = X .* (1-f_res);
+        X = X - calibration_X(:,:,kk); %calibration
         
         %convert to complex time domain signal
         x = ifft(X,Nfft,2);
@@ -176,7 +180,7 @@ for kk = 1:length(printer_positions)
             figure(fig(2));ax=pcolor(squeeze(Ygrid(:,1,:)),squeeze(Zgrid(:,1,:)),squeeze(y_yz));
             set(ax,'EdgeColor', 'none');
             xlabel('Y [m]'); ylabel('Z [m]');
-            filename = sprintf('YZ_1D_%s', dateTag);
+            filename = sprintf('YZ_2D_%s', dateTag);
         end
 %% Plot X-Z Slice
         if and(min([length(xgrid),length(zgrid)])>2,length(ygrid)<=10)
@@ -184,7 +188,7 @@ for kk = 1:length(printer_positions)
             figure(fig(3));ax=pcolor(squeeze(Xgrid(1,:,:)),squeeze(Zgrid(1,:,:)),squeeze(y_xz));
             set(ax,'EdgeColor', 'none');
             xlabel('X [m]'); ylabel('Z [m]');
-            filename = sprintf('XZ_1D_%s', dateTag);
+            filename = sprintf('XZ_2D_%s', dateTag);
             % if first_iter 
             %     set(gca,'NextPlot','replacechildren');
             %     title('xz view');xlabel('x');ylabel('z');daspect([1,1,1]);%caxis([-20,20]);
@@ -196,7 +200,7 @@ for kk = 1:length(printer_positions)
            % y_xy = 20*log10(rssq(y_cart(:,:,find(zgrid>=zgrid(1),1):find(zgrid>=zgrid(end),1)),2));
             figure(fig(2));ax = pcolor( squeeze(Xgrid(:,:,1)), squeeze(Ygrid(:,:,1)), ...
              20*log10(rssq(y_cart(:,:,find(zgrid>=zgrid(1),1):find(zgrid>=zgrid(end),1)),3)) );
-            filename = sprintf('XY_1D_%s', dateTag);
+            filename = sprintf('XY_2D_%s', dateTag);
             % if first_iter
             %     set(gca,'NextPlot','replacechildren');
             %     title('xy view');xlabel('x');ylabel('y');daspect([1,1,1]);%caxis([-20,20]);
@@ -206,7 +210,7 @@ for kk = 1:length(printer_positions)
         pause(3)
 end %% end scan loop
 
-save('radar_scan_data12.mat', 'recs', 'xgrid','ygrid','zgrid','freq','TxRxPairs','NxN','xstep','zstep','gridCenter','printer_offsets');
+save(filename, 'y_cart', 'xgrid','ygrid','zgrid','freq','TxRxPairs','NxN','xstep','zstep','gridCenter','printer_offsets');
 
 threeDPrinter("home");
 threeDPrinter("close");

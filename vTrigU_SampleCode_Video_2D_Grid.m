@@ -218,7 +218,7 @@ nrecs = 5;
         end
         %first_iter=false;
     end
-save('radar_scan_data12.mat', 'recs', 'xgrid','ygrid','zgrid','freq','TxRxPairs','NxN','xstep','zstep','gridCenter','printer_positions');
+save('YZ_2D.mat', 'recs', 'xgrid','ygrid','zgrid','freq','TxRxPairs','NxN','xstep','zstep','gridCenter','printer_positions');
 threeDPrinter("home");
 threeDPrinter("close");
 

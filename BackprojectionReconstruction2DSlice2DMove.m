@@ -7,7 +7,7 @@
 disp('Reconstruction Starting'); tic;
 
 %% ---------------- USER PARAMS ----------------------------------------
-dataFile = 'XY_1D_20250724_173414.mat';
+dataFile = 'YZ_2D_20250728_143347.mat';
 load(dataFile)   % contains variable `recs`
 [~, baseName] = fileparts(dataFile);
 
@@ -20,27 +20,23 @@ c = physconst('lightspeed'); %(m/s)
 N_freq = length(freq);
 Nfft = 2^(ceil(log2(size(freq,2)))+1);
 
-%% dynamic grid collapse -------------------------
-gv   = {xgrid, ygrid, zgrid};           % 1: x  2: y  3: z
-big  = cellfun(@numel,gv) > 10;         % “dense” axes logical mask
+%% dynamic grid collapse (collapse the smallest axis) ----
+% lengths of each axis
+lens = [numel(xgrid), numel(ygrid), numel(zgrid)];  
+% pick the axis with the fewest samples
+[~, sliceDim] = min(lens);            
 
-%‑‑ keep dense axes, collapse the sparse one to its first value
-gv(~big) = cellfun(@(v){v(1)}, gv(~big), 'uni', false);
-[xgrid,ygrid,zgrid] = deal(gv{:});      % overwrite originals
+% collapse that axis to its first value
+gv = {xgrid, ygrid, zgrid};
+gv{sliceDim} = gv{sliceDim}(1);       
+[xgrid, ygrid, zgrid] = deal(gv{:});
 
-%‑‑ identify which dim was collapsed (needed for slicing later)
-sliceDim = find(~big);                  % scalar 1|2|3
-
-%% meshgrid & slice size -------------------------
-[Xgrid,Ygrid,Zgrid] = meshgrid(xgrid,ygrid,zgrid);
-
-% Map dense axes → row / col order: always rows = 1st kept axis,
-%                                    cols = 2nd kept axis
-denseDims      = find(big);            % two numbers, e.g. [1 2] or [1 3] …
-gridCell       = {xgrid, ygrid, zgrid};
-gridA          = gridCell{denseDims(1)};   % rows   (Ny)
-gridB          = gridCell{denseDims(2)};   % cols   (Nx)
-Ny = numel(gridA); Nx = numel(gridB);
+% determine which two axes remain for rows/cols
+denseDims = setdiff(1:3, sliceDim);  
+gridA     = gv{denseDims(1)};  % rows
+gridB     = gv{denseDims(2)};  % cols
+Ny = numel(gridA);
+Nx = numel(gridB);
 
 %% pre‑allocate reconstruction stack -------------
 nRecs   = size(recs,3);                 % how many sweeps in .mat
@@ -52,7 +48,7 @@ toDB = @(M) 20*log10(abs(M)+eps) - max(20*log10(abs(M(:))+eps)); %db helper func
 %% Back Projection Loop --------------------------
 for i=1:nRecs
 X = recs(:,:,i);
-Rvec = src2-(VtrigU_ants_location + [printer_offsets(i,1) printer_offsets(i,2) 0]); %printer_offsets..  x y z
+Rvec = src2-(VtrigU_ants_location + [printer_offsets(i,1) printer_offsets(i,2) 0]); %printer_offsets..  y(R->L) x(up) from vtrigU
 Rmag = rssq(Rvec,2);
 Rtheta = atan2(rssq(Rvec(:,1:2,:,:),2),Rvec(:,3,:,:));
 Rphi = atan2(Rvec(:,2,:,:),Rvec(:,1,:,:));
@@ -81,16 +77,23 @@ padsig = [padsig((lnconv-1)/2:-1:1),padsig,padsig(end:-1:end-(lnconv-1)/2+1)];
 padsig = conv(padsig,c2,'valid');        
 f_res = padsig>thresh;
 
-%Remove resonant frequencies > =(TxRxPairs,
+%Remove resonant frequencies
 X = X .* (1-f_res);  
 %convert to complex time domain signal
 x = ifft(X,Nfft,2);
        
 y_cart = reshape(H2*reshape(X,[],1),size(Xgrid));
+%peak normalize before summing
+norm_ycart = y_cart ./ max(abs(y_cart(:)));
 
-temp_y = getSlice(y_cart, sliceDim);  % Ny × Nx matrix
-y_accum(:,:,i) = temp_y;              % store this record
-y_cart_sum     = y_cart_sum + temp_y; % accumulate for reconstruction
+% pull out the slice (will be linear if one dim was collapsed)
+temp_y = squeeze(norm_ycart);    % → [Ny×Nx] matrix every time
+
+
+% now safe to accumulate
+y_accum(:,:,i) = temp_y;
+
+y_cart_sum = y_cart_sum + temp_y; % accumulate for reconstruction
 
 a = sprintf('Image %d/%d Proccessed',i, numel(recs(1,1,:)) ); disp(a);
 
@@ -115,29 +118,46 @@ C_raw = y_accum(:,:,ceil(nRecs/2.5) ); %return grid center image
 plotSlice(C_raw, rows, cols, sliceName, 'Unimproved', baseName)
 
 %% Helper Functions
-function C = getSlice(Y, sliceDim)
-    switch sliceDim
-        case 1,  C = squeeze(Y(1,:,:));   % collapsed Y → keep X‑Z
-        case 2,  C = squeeze(Y(:,1,:));   % collapsed X → keep Y‑Z
-        case 3,  C = squeeze(Y(:,:,1));   % collapsed Z → keep Y‑X
-    end
-end
+% function C = getSlice(Y, sliceDim, Ny, Nx)
+%     % Build an index that fixes sliceDim→1, leaves the other dims free
+%     idx = repmat({':'}, 1, ndims(Y));
+%     idx{sliceDim} = 1;
+% 
+%     % Extract the slab—this may come out as 1×Ny×Nx, Ny×1×Nx, Ny×Nx×1, or even 1×N-vector
+%     slab = Y(idx{:});
+% 
+%     % Flatten to a column vector
+%     vec = slab(:);
+% 
+%     % Sanity check element count
+%     if numel(vec) ~= Ny * Nx
+%         error('getSlice: element mismatch — got %d, expected %d', ...
+%                numel(vec), Ny * Nx);
+%     end
+% 
+%     % Reshape into Ny-by-Nx
+%     C = reshape(vec, [Ny, Nx]);
+% end
+
+
 
 function plotSlice(C, rows, cols, sliceName, tag, baseName)
-    % Convert to dB
-    Cdb = 20*log10(abs(C) + eps);
+    % ensure we’re working with a 2‑D slice
+    C2 = squeeze(C);                        
+    assert(ndims(C2)==2, 'plotSlice: expected 2‑D input, got %d‑D', ndims(C2));
+
+    % convert to dB
+    Cdb = 20*log10(abs(C2) + eps);
 
     figure
-    imagesc(cols, rows, Cdb.');        % vectors → transpose
+    % swap rows/cols via permute instead of .' on an N‑D
+    imagesc(cols, rows, permute(Cdb, [2,1]))
     axis xy equal tight
     colormap turbo; colorbar
 
-    % Dynamic 5 dB limits
-    lim = caxis;
-    lim(1) = floor(lim(1)/5)*5;
-    lim(2) = ceil(lim(2)/5)*5;
+    % (the rest stays the same…)
+    lim = caxis; lim(1)=floor(lim(1)/5)*5; lim(2)=ceil(lim(2)/5)*5;
     caxis(lim)
-
     xlabel(sprintf('%c [m]', sliceName(2)))
     ylabel(sprintf('%c [m]', sliceName(1)))
     title(sprintf('%s Power Slice (%s)', sliceName, tag))
