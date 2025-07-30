@@ -8,6 +8,10 @@ disp('Reconstruction Starting'); tic;
 
 %% ---------------- USER PARAMS ----------------------------------------
 dataFile = 'YZ_2D_20250728_143347.mat';
+close all; disp('Reconstruction Starting'); tic;
+
+%% ---------------- USER PARAMS ----------------------------------------
+dataFile = 'YZ_2D_20250730_171530.mat';
 load(dataFile)   % contains variable `recs`
 [~, baseName] = fileparts(dataFile);
 
@@ -83,12 +87,9 @@ X = X .* (1-f_res);
 x = ifft(X,Nfft,2);
        
 y_cart = reshape(H2*reshape(X,[],1),size(Xgrid));
-%peak normalize before summing
-norm_ycart = y_cart ./ max(abs(y_cart(:)));
 
 % pull out the slice (will be linear if one dim was collapsed)
-temp_y = squeeze(norm_ycart);    % → [Ny×Nx] matrix every time
-
+temp_y = squeeze(y_cart);    % → [Ny×Nx] matrix every time
 
 % now safe to accumulate
 y_accum(:,:,i) = temp_y;
@@ -107,15 +108,19 @@ elseif numel(ygrid) <= 10
         sliceName = 'XZ';  rows = xgrid; cols = zgrid;
 else
         sliceName = 'XY';  rows = xgrid; cols = ygrid;
+
+        sliceName = 'YX';  rows = xgrid; cols = ygrid;
 end
 
 %% Improved Image -------------------------------------------
 C_imp = y_cart_sum;     % or rssq(y_accum,3) for RSS average
-plotSlice(C_imp, rows, cols, sliceName, 'Improved', baseName)
+Norm_C_imp = C_imp ./ max(abs(C_imp(:)));
+plotSlice(Norm_C_imp, rows, cols, sliceName, 'Improved', baseName)
 
 %% Unimproved (first record) ---------------------------------
-C_raw = y_accum(:,:,ceil(nRecs/2.5) ); %return grid center image
-plotSlice(C_raw, rows, cols, sliceName, 'Unimproved', baseName)
+C_raw = y_accum(:,:,ceil(nRecs/2) ); %return grid center image
+Norm_C_raw = C_raw ./ max(abs(C_raw(:)));
+plotSlice(Norm_C_raw, rows, cols, sliceName, 'Unimproved', baseName)
 
 %% Helper Functions
 % function C = getSlice(Y, sliceDim, Ny, Nx)
@@ -165,3 +170,4 @@ function plotSlice(C, rows, cols, sliceName, tag, baseName)
     outFile = sprintf('%s_%s_%s.png', baseName, sliceName, tag);
     exportgraphics(gcf, outFile, 'Resolution', 300)
 end
+toc
