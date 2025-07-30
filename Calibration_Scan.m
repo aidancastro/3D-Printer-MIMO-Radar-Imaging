@@ -11,7 +11,7 @@ extension = '.mat'; export_path = "C:\Users\13523\Desktop\Vakalis research\Figur
 dateTag   = datestr(datetime('now'),'yyyymmdd_HHMMss'); 
 
 %% Dynamic Square Snake scanning grid 
-NxN=5; xstep=20; zstep=20; gridCenter=[100,100]; 
+NxN=5; xstep=40; zstep=40; gridCenter=[100,100]; 
 printer_positions=zeros(NxN^2,2);printer_offsets = zeros(NxN^2,2); ctr=ceil(NxN/2); idx=1;
 for row=1:NxN
     z_off=(row-ctr)*zstep;
