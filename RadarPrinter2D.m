@@ -3,11 +3,7 @@ clc;
 close all;
 clear;
 NET.addAssembly([getenv('programfiles'),'\Vayyar\vtrigU\bin\vtrigU.CSharp.dll']);
-<<<<<<< Updated upstream
-load('Calibration_YZ_2D_20250728_160627.mat');
-=======
 load('Calibration_YZ_2D_20250730_162621.mat'); tic;
->>>>>>> Stashed changes
 
 calibration_X = recs;
 
@@ -16,25 +12,15 @@ extension = '.mat'; export_path = "C:\Users\13523\Desktop\Vakalis research\Figur
 dateTag   = datestr(datetime('now'),'yyyymmdd_HHMMss'); 
 
 %% Dynamic Square Snake scanning grid 
-<<<<<<< Updated upstream
 NxN=5; xstep=20; zstep=20; gridCenter=[100,100]; 
-=======
-NxN=5; xstep=40; zstep=40; gridCenter=[100,100]; 
->>>>>>> Stashed changes
 printer_positions=zeros(NxN^2,2);printer_offsets = zeros(NxN^2,2); ctr=ceil(NxN/2); idx=1;
 for row=1:NxN
     z_off=(row-ctr)*zstep;
     cols = (mod(row,2)==1)*(1:NxN) + (mod(row,2)==0)*(NxN:-1:1);
     for col=cols
-
         x_off=(col-ctr)*xstep;
         printer_positions(idx,:) = gridCenter+[x_off z_off];
-<<<<<<< Updated upstream
         printer_offsets(idx,:)   = [x_off z_off];   
-=======
-        printer_offsets(idx,:)   = [x_off z_off]; %offsets for backprojection   
->>>>>>> Stashed changes
-        
         idx=idx+1;
     end
 end
@@ -120,11 +106,8 @@ for ii = 1:nfig
 end
 
 threeDPrinter("open");
-<<<<<<< Updated upstream
-threeDPrinter("move", printer_positions(1,1), printer_positions(1,2)); pause(30);
-=======
+
 threeDPrinter("move", printer_positions(1,1), printer_positions(1,2)); pause(10);
->>>>>>> Stashed changes
 prev_pos=[0 0];
 
 for kk = 1:length(printer_positions)
@@ -230,8 +213,6 @@ save(filename, 'y_cart', 'xgrid','ygrid','zgrid','freq','TxRxPairs','NxN','xstep
 
 threeDPrinter("home");
 threeDPrinter("close");
-<<<<<<< Updated upstream
-=======
 
 toc;
->>>>>>> Stashed changes
+
