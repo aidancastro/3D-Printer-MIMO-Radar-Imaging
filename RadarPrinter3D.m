@@ -75,6 +75,8 @@ ygrid = linspace(-0.1, 0.4, Ny);
 src = reshape(cat(4,Xgrid,Ygrid,Zgrid),[],3);
 src2 = permute(src,[3,2,4,1]);
 
+y_cart = [length(xgrid) , length(ygrid), length(zgrid), length(printer_positions)] ; %preallocate size of y_cart for 3d
+
 % Use Radar equation to find total loss
 % Pe/Ps = (Gtx*Grx*RCS*lambda^2)/((4pi)^3*|Rtx|^2*|Rrx|^2)
 c = physconst('lightspeed'); %(m/s)
@@ -109,6 +111,7 @@ threeDPrinter("open");
 
 threeDPrinter("move", printer_positions(1,1), printer_positions(1,2)); pause(10);
 prev_pos=[0 0];
+
 
 for kk = 1:length(printer_positions)
         pos=printer_positions(kk,:);
@@ -161,57 +164,34 @@ for kk = 1:length(printer_positions)
         %convert to complex time domain signal
         x = ifft(X,Nfft,2);
        
-        y_cart = reshape(H2*reshape(X,[],1),size(Xgrid));
+     
+       y_cart = reshape(H2*reshape(X,[],1), numel(xgrid), numel(ygrid), numel(zgrid));
+       y_cart(:,:,:,kk) = y_cart;
 
         %Create and show power delay profile - non coherent summation
         PDP = rssq(x,1);
         figure(fig(3));plot(dist_vec,20*log10(abs(PDP./max(abs(PDP)))));
         
-%% Scatter Plot 
-        if min([length(xgrid),length(ygrid),length(zgrid)])>2
-            th = abs(y_cart)>1;
-            figure(fig(2));
-            scatter3(Xgrid(th),Ygrid(th),Zgrid(th),20*log10(abs(y_cart(th))),20*log10(abs(y_cart(th))))
-            filename = sprintf('YZ_2D_%s', dateTag);
+%% Isosurface Plot
+if min([length(xgrid), length(ygrid), length(zgrid)]) > 2
+    CubeSqueeze = y_cart(:,:,:,kk);
+    CubeNorm = abs(CubeSqueeze) ./ max(abs(CubeSqueeze(:)));  % normalize
+    thresh = 0.5;  % adjust threshold (-6 dB equivalent)
 
-        end
-%% Plot Y-Z Slice
-        if and(min([length(ygrid),length(zgrid)])>2,length(xgrid)<=10)
-            y_yz = 20*log10(rssq(y_cart(:,find(xgrid>=xgrid(1),1):find(xgrid>=xgrid(end),1),:),2));
-            figure(fig(2));ax=pcolor(squeeze(Ygrid(:,1,:)),squeeze(Zgrid(:,1,:)),squeeze(y_yz));
-            set(ax,'EdgeColor', 'none');
-            xlabel('Y [m]'); ylabel('Z [m]');
-            filename = sprintf('YZ_2D_%s', dateTag);
-        end
-%% Plot X-Z Slice
-        if and(min([length(xgrid),length(zgrid)])>2,length(ygrid)<=10)
-            y_xz = 20*log10(rssq(y_cart(find(ygrid>=ygrid(1),1):find(ygrid>=ygrid(end),1),:,:),1));
-            figure(fig(3));ax=pcolor(squeeze(Xgrid(1,:,:)),squeeze(Zgrid(1,:,:)),squeeze(y_xz));
-            set(ax,'EdgeColor', 'none');
-            xlabel('X [m]'); ylabel('Z [m]');
-            filename = sprintf('XZ_2D_%s', dateTag);
-            % if first_iter 
-            %     set(gca,'NextPlot','replacechildren');
-            %     title('xz view');xlabel('x');ylabel('z');daspect([1,1,1]);%caxis([-20,20]);
-            % end
-        end
+    figure(fig(2));
+    p = patch(isosurface(Xgrid, Ygrid, Zgrid, CubeNorm, thresh));
+    isonormals(Xgrid, Ygrid, Zgrid, CubeNorm, p);
+    set(p, 'FaceColor', 'red', 'EdgeColor', 'none');
+    camlight; lighting gouraud;
+    title('3D Isosurface Reconstruction');
+    
+    filename = sprintf('3D_%s', dateTag);
+end
 
-%% Plot X-Y Slice
-        if and(min([length(xgrid),length(ygrid)])>2,length(zgrid)<=10)
-           % y_xy = 20*log10(rssq(y_cart(:,:,find(zgrid>=zgrid(1),1):find(zgrid>=zgrid(end),1)),2));
-            figure(fig(2));ax = pcolor( squeeze(Xgrid(:,:,1)), squeeze(Ygrid(:,:,1)), ...
-             20*log10(rssq(y_cart(:,:,find(zgrid>=zgrid(1),1):find(zgrid>=zgrid(end),1)),3)) );
-            filename = sprintf('XY_2D_%s', dateTag);
-            % if first_iter
-            %     set(gca,'NextPlot','replacechildren');
-            %     title('xy view');xlabel('x');ylabel('y');daspect([1,1,1]);%caxis([-20,20]);
-            % end
-        end
-        %first_iter=false;
         pause(3)
 end %% end scan loop
 
-save(filename, 'y_cart', 'xgrid','ygrid','zgrid','freq','TxRxPairs','NxN','xstep','zstep','gridCenter','printer_offsets');
+save(filename, 'recs', 'xgrid','ygrid','zgrid','freq','TxRxPairs','NxN','xstep','zstep','gridCenter','printer_offsets');
 
 threeDPrinter("home");
 threeDPrinter("close");
