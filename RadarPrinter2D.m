@@ -12,7 +12,7 @@ extension = '.mat'; export_path = "C:\Users\13523\Desktop\Vakalis research\Figur
 dateTag   = datestr(datetime('now'),'yyyymmdd_HHMMss'); 
 
 %% Dynamic Square Snake scanning grid 
-NxN=5; xstep=20; zstep=20; gridCenter=[100,100]; 
+NxN=5; xstep=40; zstep=40; gridCenter=[100,100]; 
 printer_positions=zeros(NxN^2,2);printer_offsets = zeros(NxN^2,2); ctr=ceil(NxN/2); idx=1;
 for row=1:NxN
     z_off=(row-ctr)*zstep;
@@ -65,6 +65,7 @@ Ts = 1/Nfft/(freq(2)-freq(1)+1e-16); %Avoid nan checks
 time_vec = (0:Ts:Ts*(Nfft-1));
 dist_vec = time_vec*1.5e8; %distance in meters
 
+
 %% Voxels
 Nx = 1; Ny = 50; Nz = 50;
 xgrid = [0.112];
@@ -80,7 +81,7 @@ src2 = permute(src,[3,2,4,1]);
 c = physconst('lightspeed'); %(m/s)
 
 %% Beam Steering
-Rvec = src2-(VtrigU_ants_location + [0 0.02 0]);
+Rvec = src2-VtrigU_ants_location;
 Rmag = rssq(Rvec,2);
 Rtheta = atan2(rssq(Rvec(:,1:2,:,:),2),Rvec(:,3,:,:));
 Rphi = atan2(Rvec(:,2,:,:),Rvec(:,1,:,:));
