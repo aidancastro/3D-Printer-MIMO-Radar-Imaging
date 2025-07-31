@@ -3,7 +3,7 @@ clc;
 close all;
 clear;
 NET.addAssembly([getenv('programfiles'),'\Vayyar\vtrigU\bin\vtrigU.CSharp.dll']);
-load('Calibration_YZ_2D_20250730_162621.mat'); tic;
+load('Calibration_YZ_2D_7x7_20250731_160822.mat'); tic;
 
 calibration_X = recs;
 
@@ -12,7 +12,7 @@ extension = '.mat'; export_path = "C:\Users\13523\Desktop\Vakalis research\Figur
 dateTag   = datestr(datetime('now'),'yyyymmdd_HHMMss'); 
 
 %% Dynamic Square Snake scanning grid 
-NxN=5; xstep=40; zstep=40; gridCenter=[100,100]; 
+NxN=7; xstep=40; zstep=40; gridCenter=[150,150]; 
 printer_positions=zeros(NxN^2,2);printer_offsets = zeros(NxN^2,2); ctr=ceil(NxN/2); idx=1;
 for row=1:NxN
     z_off=(row-ctr)*zstep;
@@ -67,10 +67,10 @@ dist_vec = time_vec*1.5e8; %distance in meters
 
 
 %% Voxels
-Nx = 1; Ny = 50; Nz = 50;
+Nx = 1; Ny = 60; Nz = 60;
 xgrid = [0.112];
-zgrid = linspace(0.1,0.4,Nz);
-ygrid = linspace(-0.1, 0.4, Ny);
+zgrid = linspace(0.1,0.8,Nz);
+ygrid = linspace(-0.6, 0.1, Ny);
 [Xgrid,Ygrid,Zgrid]=meshgrid(xgrid,ygrid,zgrid);
 
 src = reshape(cat(4,Xgrid,Ygrid,Zgrid),[],3);
