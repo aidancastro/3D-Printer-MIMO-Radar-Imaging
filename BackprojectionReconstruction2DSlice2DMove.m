@@ -7,7 +7,7 @@
 disp('Reconstruction Starting'); tic;
 
 %% ---------------- USER PARAMS ----------------------------------------
-dataFile = 'YZ_2D_20250728_143347.mat';
+dataFile = '3D_20250730_181005.mat';
 close all; disp('Reconstruction Starting'); tic;
 
 %% ---------------- USER PARAMS ----------------------------------------
@@ -44,7 +44,7 @@ Nx = numel(gridB);
 
 %% pre‑allocate reconstruction stack -------------
 nRecs   = size(recs,3);                 % how many sweeps in .mat
-y_accum = zeros(Ny, Nx, nRecs, 'single');   % or 'double'
+y_accum = zeros(Ny, Nx, Nz, 'single');   % or 'double'
 y_cart_sum = zeros(Ny, Nx, 'single');
 toDB = @(M) 20*log10(abs(M)+eps) - max(20*log10(abs(M(:))+eps)); %db helper function
 
