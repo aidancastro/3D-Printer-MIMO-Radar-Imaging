@@ -3,12 +3,13 @@ clc;
 close all;
 clear;
 NET.addAssembly([getenv('programfiles'),'\Vayyar\vtrigU\bin\vtrigU.CSharp.dll']);
-%load('Calibration_YZ_2D_20250730_162621.mat'); tic;
+%load('Calibration_3D20250731_163602.mat'); 
+tic;
 
 %calibration_X = recs;
 
 %export file info
-extension = '.mat'; export_path = "C:\Users\13523\Desktop\Vakalis research\Figure Holding Space";
+extension = '.mat'; %export_path = "C:\Users\13523\Desktop\Vakalis research\Figure Holding Space";
 dateTag   = datestr(datetime('now'),'yyyymmdd_HHMMss'); 
 
 %% Dynamic Square Snake scanning grid 
@@ -67,15 +68,16 @@ dist_vec = time_vec*1.5e8; %distance in meters
 
 %% Voxels
 Nx = 30; Ny = 30; Nz = 20;
-xgrid = linspace(-0.1,0.4, Nx);
-zgrid = linspace(0.1,0.4,Nz);
-ygrid = linspace(-0.1, 0.4, Ny);
+xgrid = linspace(0,0.6, Nx); %vertical printer move
+zgrid = linspace(0.1,0.4,Nz); %down rannge
+ygrid = linspace(-0.5, 0.1, Ny);%horizontal printer move
 [Xgrid,Ygrid,Zgrid]=meshgrid(xgrid,ygrid,zgrid);
 
 src = reshape(cat(4,Xgrid,Ygrid,Zgrid),[],3);
 src2 = permute(src,[3,2,4,1]);
 
-y_cart = [length(xgrid) , length(ygrid), length(zgrid), length(printer_positions)] ; %preallocate size of y_cart for 3d
+% 4‑D container: every scan volume gets its own slot
+reconCubeAll = zeros(Nx,Ny,Nz, NxN^2,'single');
 
 % Use Radar equation to find total loss
 % Pe/Ps = (Gtx*Grx*RCS*lambda^2)/((4pi)^3*|Rtx|^2*|Rrx|^2)
@@ -159,42 +161,114 @@ for kk = 1:length(printer_positions)
         
         %Remove resonant frequencies
         X = X .* (1-f_res);
+
+
         %X = X - calibration_X(:,:,kk); %calibration
         
         %convert to complex time domain signal
         x = ifft(X,Nfft,2);
        
-     
-       y_cart = reshape(H2*reshape(X,[],1), numel(xgrid), numel(ygrid), numel(zgrid));
-       y_cart(:,:,:,kk) = y_cart;
+        % back-project cube at origin
+        reconCube = reshape(H2 * reshape(X,[],1), Nx,Ny,Nz);
+
+        %store cube BEFORE shifting
+        reconCubeAll(:,:,:,kk) = reconCube;
+
+        % world coordinates that include printer offset
+        xShift = printer_offsets(kk,2);
+        yShift = printer_offsets(kk,1);
+        Xw = Xgrid + xShift;
+        Yw = Ygrid + yShift;
+        Zw = Zgrid; %downrange unchanged
+
 
         %Create and show power delay profile - non coherent summation
         PDP = rssq(x,1);
         figure(fig(3));plot(dist_vec,20*log10(abs(PDP./max(abs(PDP)))));
         
-%% Isosurface Plot
-if min([length(xgrid), length(ygrid), length(zgrid)]) > 2
-    CubeSqueeze = y_cart(:,:,:,kk);
-    CubeNorm = abs(CubeSqueeze) ./ max(abs(CubeSqueeze(:)));  % normalize
-    thresh = 0.5;  % adjust threshold (-6 dB equivalent)
-
-    figure(fig(2));
-    p = patch(isosurface(Xgrid, Ygrid, Zgrid, CubeNorm, thresh));
-    isonormals(Xgrid, Ygrid, Zgrid, CubeNorm, p);
-    set(p, 'FaceColor', 'red', 'EdgeColor', 'none');
-    camlight; lighting gouraud;
-    title('3D Isosurface Reconstruction');
-    
-    filename = sprintf('3D_%s', dateTag);
-end
+        %call plot helper function
+        plotRadarLiveYZ(reconCube, Xw, Yw, Zw, kk, length(printer_positions) );
 
         pause(3)
 end %% end scan loop
 
-save(filename, 'recs', 'xgrid','ygrid','zgrid','freq','TxRxPairs','NxN','xstep','zstep','gridCenter','printer_offsets');
 
 threeDPrinter("home");
 threeDPrinter("close");
 
-toc;
+time = toc;
 
+filename = sprintf('3D_%s', dateTag);
+save(filename, 'reconCubeAll', 'xgrid','ygrid','zgrid','freq','TxRxPairs','NxN','xstep','zstep','gridCenter','printer_offsets','time');
+
+function plotRadarLiveYZ(Cube, xgrid, ygrid, zgrid, scanIdx, totalScans)
+% Live YZ slice + adaptive 3D isosurface (with correct coloring)
+
+% ----- current volume (normalized) -----
+if ndims(Cube)==4, V = abs(Cube(:,:,:,scanIdx)); else, V = abs(Cube); end
+V = V ./ (max(V(:)) + eps);      % Ny x Nx x Nz
+
+% ----- YZ slice at max-energy X -----
+energyX = squeeze(sum(sum(V,1),3));     % Nx
+[~, xIdx] = max(energyX);
+Syz = squeeze(V(:,xIdx,:));             % Ny x Nz
+
+% ----- adaptive threshold (10% -> 50% of peak) -----
+alpha  = 0.1 + 0.4*(scanIdx/max(totalScans,1));
+thresh = alpha * max(V(:));
+
+% ----- figure -----
+if ~ishandle(998), figure(998); clf; set(gcf,'Color',[0.95 0.95 0.95]); end
+figure(998); clf;
+
+% --- panel 1: YZ slice ---
+subplot(1,2,1);
+imagesc(ygrid, zgrid, Syz);
+axis equal tight; set(gca,'YDir','normal');
+xlabel('Y [m]'); ylabel('Z [m]');
+title(sprintf('YZ Slice x = %.3f | Scan %d/%d', xgrid(xIdx), scanIdx, totalScans));
+cb = colorbar; cb.Label.String = 'Normalized |V|'; caxis([0 1]);
+
+% --- panel 2: 3D view ---
+subplot(1,2,2);
+[X,Y,Z] = meshgrid(xgrid, ygrid, zgrid);
+
+% light downsample for speed
+dsx = max(1, round(numel(xgrid)/80));
+dsy = max(1, round(numel(ygrid)/80));
+dsz = max(1, round(numel(zgrid)/80));
+Vd = V(1:dsy:end, 1:dsx:end, 1:dsz:end);
+Xd = X(1:dsy:end, 1:dsx:end, 1:dsz:end);
+Yd = Y(1:dsy:end, 1:dsx:end, 1:dsz:end);
+Zd = Z(1:dsy:end, 1:dsx:end, 1:dsz:end);
+
+% If too few above threshold, fallback to scatter of top voxels
+if nnz(Vd > thresh) < 200
+    N = min(2000, numel(Vd));
+    [~, idxTop] = maxk(Vd(:), N);
+    scatter3(Xd(idxTop), Yd(idxTop), Zd(idxTop), 10, Vd(idxTop), 'filled');
+else
+    % Correct coloring via isocolors (no manual FaceVertexCData sizes)
+    p = patch(isosurface(Xd, Yd, Zd, Vd, thresh));
+    if isempty(p.Vertices)
+        % safety fallback
+        N = min(2000, numel(Vd));
+        [~, idxTop] = maxk(Vd(:), N);
+        scatter3(Xd(idxTop), Yd(idxTop), Zd(idxTop), 10, Vd(idxTop), 'filled');
+    else
+        isonormals(Xd, Yd, Zd, Vd, p);
+        isocolors(Xd, Yd, Zd, Vd, p);        % <-- sets FaceVertexCData correctly
+        set(p, 'FaceColor','interp', 'EdgeColor','none');
+        view(45,25); camlight; lighting gouraud;
+    end
+end
+axis equal tight; xlabel('X'); ylabel('Y'); zlabel('Z');
+title('3D Reconstruction'); colorbar;
+
+% ----- stats -----
+peakVal = max(V(:)); meanVal = mean(V(:));
+psnrEst = 20*log10( peakVal/(std(V(:))+eps) );
+sgtitle(sprintf('Peak=%.2f | Mean=%.2f | PSNR≈%.1f dB', peakVal, meanVal, psnrEst));
+
+drawnow;
+end
