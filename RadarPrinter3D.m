@@ -186,9 +186,17 @@ for kk = 1:length(printer_positions)
         PDP = rssq(x,1);
         figure(fig(3));plot(dist_vec,20*log10(abs(PDP./max(abs(PDP)))));
         
-        %call plot helper function
-        plotRadarLiveYZ(reconCube, Xw, Yw, Zw, kk, length(printer_positions) );
-
+        %% Plot
+        CubeNorm = abs(reconCube) ./ max(abs(reconCube));  % normalize
+        thresh = 0.5;  % adjust threshold (-6 dB equivalent)
+        figure(fig(2));
+        p = patch(isosurface(Xw, Yw, Zw, CubeNorm, thresh));
+        isonormals(Xw, Ygrid, Zgrid, CubeNorm, p);
+        set(p, 'FaceColor', 'red', 'EdgeColor', 'none');
+        camlight; lighting gouraud;
+        title('3D Isosurface Reconstruction');
+    
+        
         pause(3)
 end %% end scan loop
 
@@ -201,74 +209,3 @@ time = toc;
 filename = sprintf('3D_%s', dateTag);
 save(filename, 'reconCubeAll', 'xgrid','ygrid','zgrid','freq','TxRxPairs','NxN','xstep','zstep','gridCenter','printer_offsets','time');
 
-function plotRadarLiveYZ(Cube, xgrid, ygrid, zgrid, scanIdx, totalScans)
-% Live YZ slice + adaptive 3D isosurface (with correct coloring)
-
-% ----- current volume (normalized) -----
-if ndims(Cube)==4, V = abs(Cube(:,:,:,scanIdx)); else, V = abs(Cube); end
-V = V ./ (max(V(:)) + eps);      % Ny x Nx x Nz
-
-% ----- YZ slice at max-energy X -----
-energyX = squeeze(sum(sum(V,1),3));     % Nx
-[~, xIdx] = max(energyX);
-Syz = squeeze(V(:,xIdx,:));             % Ny x Nz
-
-% ----- adaptive threshold (10% -> 50% of peak) -----
-alpha  = 0.1 + 0.4*(scanIdx/max(totalScans,1));
-thresh = alpha * max(V(:));
-
-% ----- figure -----
-if ~ishandle(998), figure(998); clf; set(gcf,'Color',[0.95 0.95 0.95]); end
-figure(998); clf;
-
-% --- panel 1: YZ slice ---
-subplot(1,2,1);
-imagesc(ygrid, zgrid, Syz);
-axis equal tight; set(gca,'YDir','normal');
-xlabel('Y [m]'); ylabel('Z [m]');
-title(sprintf('YZ Slice x = %.3f | Scan %d/%d', xgrid(xIdx), scanIdx, totalScans));
-cb = colorbar; cb.Label.String = 'Normalized |V|'; caxis([0 1]);
-
-% --- panel 2: 3D view ---
-subplot(1,2,2);
-[X,Y,Z] = meshgrid(xgrid, ygrid, zgrid);
-
-% light downsample for speed
-dsx = max(1, round(numel(xgrid)/80));
-dsy = max(1, round(numel(ygrid)/80));
-dsz = max(1, round(numel(zgrid)/80));
-Vd = V(1:dsy:end, 1:dsx:end, 1:dsz:end);
-Xd = X(1:dsy:end, 1:dsx:end, 1:dsz:end);
-Yd = Y(1:dsy:end, 1:dsx:end, 1:dsz:end);
-Zd = Z(1:dsy:end, 1:dsx:end, 1:dsz:end);
-
-% If too few above threshold, fallback to scatter of top voxels
-if nnz(Vd > thresh) < 200
-    N = min(2000, numel(Vd));
-    [~, idxTop] = maxk(Vd(:), N);
-    scatter3(Xd(idxTop), Yd(idxTop), Zd(idxTop), 10, Vd(idxTop), 'filled');
-else
-    % Correct coloring via isocolors (no manual FaceVertexCData sizes)
-    p = patch(isosurface(Xd, Yd, Zd, Vd, thresh));
-    if isempty(p.Vertices)
-        % safety fallback
-        N = min(2000, numel(Vd));
-        [~, idxTop] = maxk(Vd(:), N);
-        scatter3(Xd(idxTop), Yd(idxTop), Zd(idxTop), 10, Vd(idxTop), 'filled');
-    else
-        isonormals(Xd, Yd, Zd, Vd, p);
-        isocolors(Xd, Yd, Zd, Vd, p);        % <-- sets FaceVertexCData correctly
-        set(p, 'FaceColor','interp', 'EdgeColor','none');
-        view(45,25); camlight; lighting gouraud;
-    end
-end
-axis equal tight; xlabel('X'); ylabel('Y'); zlabel('Z');
-title('3D Reconstruction'); colorbar;
-
-% ----- stats -----
-peakVal = max(V(:)); meanVal = mean(V(:));
-psnrEst = 20*log10( peakVal/(std(V(:))+eps) );
-sgtitle(sprintf('Peak=%.2f | Mean=%.2f | PSNR≈%.1f dB', peakVal, meanVal, psnrEst));
-
-drawnow;
-end
