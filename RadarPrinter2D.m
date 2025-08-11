@@ -210,7 +210,7 @@ for kk = 1:length(printer_positions)
         pause(3)
 end %% end scan loop
 
-save(filename, 'y_cart', 'xgrid','ygrid','zgrid','freq','TxRxPairs','NxN','xstep','zstep','gridCenter','printer_offsets');
+save(filename, 'recs', 'xgrid','ygrid','zgrid','freq','TxRxPairs','NxN','xstep','zstep','gridCenter','printer_offsets');
 
 threeDPrinter("home");
 threeDPrinter("close");
