@@ -135,7 +135,6 @@ for kk = 1:length(printer_positions)
         X = reshape(X,smat_size(my_perms));
         X = ipermute(X,my_perms);
         X = X(:,:,1)+ 1j*X(:,:,2);
-        recs(:,:,kk) = X;
         
             if kk == 1
             
@@ -161,12 +160,24 @@ for kk = 1:length(printer_positions)
         
         %Remove resonant frequencies
         X = X .* (1-f_res);
-
-
         %X = X - calibration_X(:,:,kk); %calibration
-        
+
+        %frequency taper
+        wf = hann(size(X,1)); % N_freq x 1
+        X = X .* wf;
+
+        %time gate
+        B = freq(end) - freq(1); %Bandwidth
+        r= (0:Nfft-1).' * (3e8/(2*B)); %range axis [m]
+        rmin = zgrid(1); rmax = zgrid(end); %set scene range
+
         %convert to complex time domain signal
         x = ifft(X,Nfft,2);
+       
+        gate = (r>=rmin & r<=rmax);
+        x(~gate, :) = 0; %0 outside of gate
+        X = fft(x, [], 2);
+        recs(:,:,kk) = X;
        
         % back-project cube at origin
         reconCube = reshape(H2 * reshape(X,[],1), Nx,Ny,Nz);
