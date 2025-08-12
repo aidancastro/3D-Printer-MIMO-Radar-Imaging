@@ -12,7 +12,7 @@ extension = '.mat'; export_path = "C:\Users\13523\Desktop\Vakalis research\Figur
 dateTag   = datestr(datetime('now'),'yyyymmdd_HHMMss'); 
 
 %% Dynamic Square Snake scanning grid 
-NxN=7; xstep=40; zstep=40; gridCenter=[150,150]; 
+NxN=5; xstep=40; zstep=40; gridCenter=[150,150]; 
 printer_positions=zeros(NxN^2,2);printer_offsets = zeros(NxN^2,2); ctr=ceil(NxN/2); idx=1;
 for row=1:NxN
     z_off=(row-ctr)*zstep;
@@ -158,10 +158,21 @@ for kk = 1:length(printer_positions)
         %Remove resonant frequencies
         X = X .* (1-f_res);
         X = X - calibration_X(:,:,kk); %calibration
-        
+
+        %frequency taper
+        wf = hann(size(X,1)); % N_freq x 1
+        X = X .* wf;
+
+        %time gate
+        B = freq(end) - freq(1); %Bandwidth
+        r= (0:Nfft-1).' * (3e8/(2*B)); %range axis [m]
+        rmin = zgrid(1); rmax = zgrid(end); %set scene range
+
         %convert to complex time domain signal
         x = ifft(X,Nfft,2);
        
+        gate = (r>=rmin & r<=rmax);
+        x(~gate, :) = 0; %0 outside of gate
         y_cart = reshape(H2*reshape(X,[],1),size(Xgrid));
 
         %Create and show power delay profile - non coherent summation
