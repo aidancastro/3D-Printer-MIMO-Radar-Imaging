@@ -173,6 +173,7 @@ for kk = 1:length(printer_positions)
        
         gate = (r>=rmin & r<=rmax);
         x(~gate, :) = 0; %0 outside of gate
+        X = fft(x, [], 2);
         y_cart = reshape(H2*reshape(X,[],1),size(Xgrid));
 
         %Create and show power delay profile - non coherent summation
