@@ -69,8 +69,8 @@ dist_vec = time_vec*1.5e8; %distance in meters
 %% Voxels
 Nx = 1; Ny = 60; Nz = 60;
 xgrid = [0.112];
-zgrid = linspace(0.1,0.8,Nz);
-ygrid = linspace(-0.6, 0.1, Ny);
+zgrid = linspace(0.2,0.7,Nz);
+ygrid = linspace(-0.3, 0.3, Ny);
 [Xgrid,Ygrid,Zgrid]=meshgrid(xgrid,ygrid,zgrid);
 
 src = reshape(cat(4,Xgrid,Ygrid,Zgrid),[],3);
