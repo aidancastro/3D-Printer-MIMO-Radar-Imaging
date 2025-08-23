@@ -54,7 +54,26 @@ end
 freq = double(vtrigU.vtrigU.GetFreqVector_MHz())*1e6;
 
 %get antennas locations from script
-vtrigU_ants_location;
+
+%% ---- Antenna locations (x=vertical, y=horizontal, z=0) ----
+% File created from Python: contains 20×1 vectors TX_x, TX_y, RX_x, RX_y
+S = load('AntennaLocations.mat');   % adjust path if needed
+
+TX_x = double(S.TX_x(:));           % TX 1..20 (top→bottom)
+TX_y = double(S.TX_y(:));           % constant y for TX
+RX_x = double(S.RX_x(:));           % constant x for RX
+RX_y = double(S.RX_y(:));           % RX 21..40 (left→right)
+
+% Hardware order on VK-74 is RX(1..20), then TX(21..40)
+ant_x = [RX_x; TX_x];               % (40×1)
+ant_y = [RX_y; TX_y];               % (40×1)
+ant_z = zeros(40,1);                % antenna plane (z downrange = 0)
+
+%beam-steering math expects 3×40×1×1 so it can broadcast vs src2
+VtrigU_ants_location = reshape([ant_x.'; ant_y.'; ant_z.'], [3, 40, 1, 1]);
+
+
+
 
 %Define constants
 N_txrx = size(TxRxPairs,1);
