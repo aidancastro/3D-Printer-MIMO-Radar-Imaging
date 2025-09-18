@@ -8,16 +8,17 @@
 close all; disp('Reconstruction Starting'); tic;
 
 %% ---------------- USER PARAMS ----------------------------------------
-dataFile = 'YZ_2D_20250910_154838.mat';
+dataFile = 'ball_Scan_20250917_112419.mat';
 load(dataFile)   % contains variable `recs`
 [~, baseName] = fileparts(dataFile);
 
+vtrigU_ants_location;
 %load new antenna locations and reshape into [y x z] 1-20 tx, 21-40 rx
-load('AntennaLocations.mat');
-antx = [TX_x, RX_x]';
-anty = [TX_y, RX_y]';
-antz = zeros(40,1);
-AntennaLocations = [anty, antx, antz];
+% load('AntennaLocations.mat');
+% antx = [TX_x, RX_x]';
+% anty = [TX_y, RX_y]';
+% antz = zeros(40,1);
+% AntennaLocations = [anty, antx, antz];
 
 [Xgrid,Ygrid,Zgrid]=meshgrid(xgrid,ygrid,zgrid);
 
@@ -51,12 +52,16 @@ nRecs   = size(recs,3);                 % how many sweeps in .mat
 y_accum = zeros(numel(gridA), numel(gridB), nRecs, 'single');   % or 'double'
 y_cart_sum = zeros(Ny, Nx, 'single');
 toDB = @(M) 20*log10(abs(M)+eps) - max(20*log10(abs(M(:))+eps)); %db helper function
+step = 0.04; %20 or 40mm   %snake pattern [y,x] no z
+printer_offset_y = [0 step 2*step 3*step 4*step 4*step 3*step 2*step step 0 0 step 2*step 3*step 4*step 4*step 3*step 2*step step 0 0 step 2*step 3*step 4*step]; %rows 1-5
+printer_offset_x =[0 0 0 0 0 -step -step -step -step -step -2*step  -2*step  -2*step  -2*step  -2*step -3*step  -3*step  -3*step  -3*step  -3*step -4*step  -4*step  -4*step  -4*step  -4*step]; %x (vertical) offsets
+printer_offsets = [printer_offset_y(:),printer_offset_x(:)];
 
 
 %% Back Projection Loop --------------------------
 for i=1:nRecs
 X = recs(:,:,i);
-Rvec = src2-(AntennaLocations - [printer_offsets(i,1) printer_offsets(i,2) 0]); %printer_offsets..  y(R->L) x(up) from vtrigU
+Rvec = src2-(VtrigU_ants_location + [printer_offsets(i,1) printer_offsets(i,2) 0]); %printer_offsets..  y(R->L) x(up) from vtrigU
 Rmag = rssq(Rvec,2);
 Rtheta = atan2(rssq(Rvec(:,1:2,:,:),2),Rvec(:,3,:,:));
 Rphi = atan2(Rvec(:,2,:,:),Rvec(:,1,:,:));
@@ -171,9 +176,9 @@ function plotSlice(C, rows, cols, sliceName, tag, baseName)
     ylabel(sprintf('%c [m]', sliceName(1)))
     title(sprintf('%s Power Slice (%s)', sliceName, tag))
 
-    outFile = sprintf('%s_%s_%s_reconstructed.mat', baseName, sliceName, tag);
-    exportgraphics(gcf, outFile, 'Resolution', 300)
+    %exportgraphics(gcf, outFile, 'Resolution', 300)
 end
 toc
 
-save(outFile, 'y_cart', 'y_cart_sum');
+outFile = sprintf('reconstructed_%s_%s', sliceName, baseName);
+save(outFile, 'y_accum', 'y_cart_sum', 'xgrid','ygrid','zgrid','Xgrid','Ygrid','Zgrid');

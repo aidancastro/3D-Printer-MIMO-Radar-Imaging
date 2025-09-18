@@ -7,11 +7,17 @@
 disp('Reconstruction Starting'); tic;
 
 %% ---------------- USER PARAMS ----------------------------------------
-dataFile = 'XY_1D_20250724_173414.mat';
+dataFile = 'YZ_2D_20250910_154838.mat';
 load(dataFile)   % contains variable `recs`
 [~, baseName] = fileparts(dataFile);
 
 vtrigU_ants_location;
+load('AntennaLocations.mat');
+antx = [TX_x, RX_x]';
+anty = [TX_y, RX_y]';
+antz = zeros(40,1);
+AntennaLocations = [anty, antx, antz];
+
 [Xgrid,Ygrid,Zgrid]=meshgrid(xgrid,ygrid,zgrid);
 
 src = reshape(cat(4,Xgrid,Ygrid,Zgrid),[],3);
@@ -52,7 +58,7 @@ toDB = @(M) 20*log10(abs(M)+eps) - max(20*log10(abs(M(:))+eps)); %db helper func
 %% Back Projection Loop 
 for i=1:nRecs
 X = recs(:,:,i);
-Rvec = src2-(VtrigU_ants_location + [0 0.02*(i-1) 0]);
+Rvec = src2-(AntennaLocations + [0 0.02*(i-1) 0]);
 Rmag = rssq(Rvec,2);
 Rtheta = atan2(rssq(Rvec(:,1:2,:,:),2),Rvec(:,3,:,:));
 Rphi = atan2(Rvec(:,2,:,:),Rvec(:,1,:,:));
