@@ -5,7 +5,7 @@
 close all; disp('Reconstruction Starting'); tic;
 
 %% ---------------- USER PARAMS ----------------------------------------
-dataFile = 'ball_Scan_20250928_194143.mat';
+dataFile = 'ball_Scan_20250928_190603.mat';
 load(dataFile)   % expects: recs, freq, xgrid, ygrid, zgrid, TxRxPairs, VtrigU_ants_location, RadiationPattern
 [~, baseName] = fileparts(dataFile);
 
@@ -34,9 +34,10 @@ end
 % -src  = reshape(cat(4,Xgrid,Ygrid,Zgrid),[],3);  % (V,3) [X Y Z]
 % -src2 = permute(src,[3,2,4,1]);
 
-[Ygrid, Xgrid, Zgrid] = meshgrid(ygrid, xgrid, zgrid);
-src  = [Ygrid(:), Xgrid(:), Zgrid(:)];                 % (V,3) [Y X Z]
+[Xgrid, Ygrid, Zgrid] = meshgrid(xgrid, ygrid, zgrid);
+src  = [Xgrid(:), Ygrid(:), Zgrid(:)];                 % (V,3) [X Y Z]
 src2 = reshape(src.', [1,3,1,numel(src)/3]);           % (1×3×1×V)
+
 
 c     = physconst('lightspeed'); %(m/s)
 N_freq = numel(freq);
@@ -292,11 +293,10 @@ function plotSlice(C, rows, cols, sliceName, tag, ~)
             x = cols; y = rows; xlab = 'cols';   ylab = 'rows';
     end
 
-    imagesc(x, y, Cdb);          % <-- no permute; x first, then y
+    imagesc(y, x, Cdb);          % <-- no permute; x first, then y
     axis xy equal tight; 
     colormap turbo; colorbar; caxis([-40 0])
-    xlabel(xlab); ylabel(ylab);
+    xlabel(ylab); ylabel(xlab);
     title(sprintf('%s Power Slice — %s', sliceName, tag))
 end
-
 
