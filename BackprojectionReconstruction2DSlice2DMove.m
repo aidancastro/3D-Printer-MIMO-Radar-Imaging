@@ -2,10 +2,15 @@
 % x axis - vertical printer move
 % z axis - towards target
 
+
 close all; disp('Reconstruction Starting'); tic;
 
+
+load('Calibration_XY_2D_20251005_170345.mat');
+calibration_recs = recs(:,:,:);
+
 %% ---------------- USER PARAMS ----------------------------------------
-dataFile = 'ball_Scan_20250928_190603.mat';
+dataFile = 'ball_Scan_20251005_165012.mat';
 load(dataFile)   % expects: recs, freq, xgrid, ygrid, zgrid, TxRxPairs, VtrigU_ants_location, RadiationPattern
 [~, baseName] = fileparts(dataFile);
 
@@ -81,7 +86,8 @@ toDB = @(M) 20*log10(abs(M)+eps) - max(20*log10(abs(M(:))+eps));
 % printer_offsets_yx  = [printer_offset_y(:), printer_offset_x(:)];
 % --- Snake pattern offsets for 5×5 scan ---
 N = 5;
-step = 0.04;  % 40 mm = 0.04 m
+
+step = 0.02;  % 20 mm = 0.02 m
 
 printer_offset_y = zeros(N^2,1);  % stage motion along Y axis
 printer_offset_x = zeros(N^2,1);  % stage motion along X axis
@@ -115,6 +121,7 @@ y_ref = [];   % reference complex image for phase locking
 %% Back Projection Loop
 for i = 1:nRecs
     X = recs(:,:,i);  % (nPairs, nFreq)
+    X = X - calibration_recs(:,:,i);
 
        % pack antennas once for 4-D implicit expansion
     K = size(Vant,1);
@@ -162,7 +169,8 @@ for i = 1:nRecs
     end
     H2 = reshape(permute(H2, [4 1 2 3]), V, nPairs*nF);        % (V × nPairs*nF)
 
-    % ---- (your resonant frequency removal code unchanged) ----
+
+    %resonance removal
     thresh = 3; Nf = size(X,2);
     if Nf >= 3
         df = (Nf>=2) * abs(median(diff(freq))) + (Nf<2)*1;
@@ -278,6 +286,8 @@ Snc  = sqrt(sum(abs(Snorm).^2,3));
 end
 
 function plotSlice(C, rows, cols, sliceName, tag, ~)
+
+    figure;
     C2  = squeeze(C);  assert(ndims(C2)==2, 'plotSlice: expected 2-D input');
     Cdb = 20*log10(abs(C2) + eps); 
     Cdb = max(Cdb - max(Cdb(:)), -40);
