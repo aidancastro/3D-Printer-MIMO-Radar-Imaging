@@ -102,8 +102,17 @@ Rmag = rssq(Rvec,2);
 Rtheta = atan2(rssq(Rvec(:,1:2,:,:),2),Rvec(:,3,:,:));
 Rphi = atan2(Rvec(:,2,:,:),Rvec(:,1,:,:));
 Sphase = 2*pi*Rmag.*freq/c; %Electrical Length in Radians
-RCS = 1; %m^2
-lambda = c./freq; csf = sqrt(RCS).*lambda./((4*pi).^(3/2));
+%RCS = 1; %m^2 for sphere
+
+RCS = ( 0.2032^2 * 0.20828^2 * 4*pi ) / 0.00461; %for flat plate target
+
+a = 0.2032;   % plate length (m)
+b = 0.20828;  % plate width  (m)
+
+lambda = c ./ freq;                         % 1 x N_freq
+sigma_peak = (4*pi) * (a*b)^2 ./ (lambda.^2);  % 1 x N_freq
+csf = sqrt(sigma_peak) .* lambda ./ ((4*pi)^(3/2));  % 1 x N_freq      %csf = sqrt(RCS).*lambda./((4*pi).^(3/2));
+csf = reshape(csf, [1 1 numel(freq) 1]); % reshape for broadcasting with Smag(tx,:,:,:) etc.
 Smag = 10^(5.8/20)*RadiationPattern(Rtheta,Rphi)./Rmag;
 
 H2 = zeros(length(TxRxPairs),length(freq),1,length(src2));
