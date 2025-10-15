@@ -2,15 +2,15 @@
 % x axis - vertical printer move
 % z axis - towards target
 
-
+clear;
 close all; disp('Reconstruction Starting'); tic;
 
 
-load('Calibration_XY_2D_20251005_170345.mat');
-calibration_recs = recs(:,:,:);
+%load('Calibration_XY_2D_20251005_170345.mat');
+%calibration_recs = recs(:,:,:);
 
 %% ---------------- USER PARAMS ----------------------------------------
-dataFile = 'ball_Scan_20251005_165012.mat';
+dataFile = 'YZ_2D_20251014_215342.mat';
 load(dataFile)   % expects: recs, freq, xgrid, ygrid, zgrid, TxRxPairs, VtrigU_ants_location, RadiationPattern
 [~, baseName] = fileparts(dataFile);
 
@@ -121,7 +121,7 @@ y_ref = [];   % reference complex image for phase locking
 %% Back Projection Loop
 for i = 1:nRecs
     X = recs(:,:,i);  % (nPairs, nFreq)
-    X = X - calibration_recs(:,:,i);
+%    X = X - calibration_recs(:,:,i);
 
        % pack antennas once for 4-D implicit expansion
     K = size(Vant,1);
@@ -187,7 +187,7 @@ for i = 1:nRecs
     end
 
     % ---- accumulate ----
-    y_cart = reshape(H2 * X(:), [numel(rows), numel(cols)]);   % reshape to 2-D slice size
+    y_cart = reshape(H2 * X(:), [numel(rows), numel(cols)]);
 
     % ---- NEW: global phase alignment (one scalar per scan) ----
     if isempty(y_ref)
@@ -221,7 +221,7 @@ plotSlice(Norm_C_raw, rows, cols, sliceName, 'Unimproved (single scan, normalize
 
 toc
 outFile = sprintf('reconstructed_%s_%s.mat', sliceName, baseName);
-save(outFile, 'y_accum', 'y_norm', 'Ssum', 'Snc', 'xgrid','ygrid','zgrid','Xgrid','Ygrid','Zgrid');
+%save(outFile, 'y_accum', 'y_norm', 'Ssum', 'Snc', 'xgrid','ygrid','zgrid','Xgrid','Ygrid','Zgrid');
 
 % Use complex images before display scaling
 Img_imp = C_imp;               % improved (coherent sum)
@@ -305,7 +305,7 @@ function plotSlice(C, rows, cols, sliceName, tag, ~)
 
     imagesc(y, x, Cdb);          % <-- no permute; x first, then y
     axis xy equal tight; 
-    colormap turbo; colorbar; caxis([-40 0])
+    colormap turbo; colorbar; clim([-3 0])
     xlabel(ylab); ylabel(xlab);
     title(sprintf('%s Power Slice — %s', sliceName, tag))
 end
